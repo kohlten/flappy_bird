@@ -5,28 +5,35 @@ import dsfml.system;
 import std.conv : to;
 import std.random : Random, unpredictableSeed, uniform;
 import std.stdio : writeln;
+import bird;
 
 class Game
 {
-	RenderWindow window;
-	Vector2i size;
-	Color color;
-	ContextSettings settings;
-	Random rng;
-	Texture background;
-	Texture ground;
-	RectangleShape rBackground;
-	RectangleShape rGround;
+	Random			rng;
+
+	RenderWindow	window;
+	Vector2i		size;
+	ContextSettings	settings;
+	Color			color;
+
+	Texture			background;
+	Texture			ground;
+	Texture			tbird;
+	RectangleShape 	rBackground;
+	RectangleShape	rGround;
+
+	int 			scale = 4;
+
+	Bird 			bird;
 
 	this(Random rng)
 	{
-		this.size.x = 500;
-		this.size.y = 800;
-		this.color = Color(0, 0, 0);
-		this.window = new RenderWindow(VideoMode(this.size.x, this.size.y), "Mines");
-		this.window.setFramerateLimit(60);
 		this.loadTextures();
+		this.color = Color(0, 0, 0);
+		this.window = new RenderWindow(VideoMode(this.size.x, this.size.y), "Flappy Bird");
+		this.window.setFramerateLimit(60);
 		this.rng = rng;
+		this.bird = new Bird(this.size, this.tbird, this.scale);
 	}
 
 	void run()
@@ -37,6 +44,7 @@ class Game
 			this.window.clear(this.color);
 			this.window.draw(this.rBackground);
 			this.window.draw(this.rGround);
+			this.bird.draw(this.window);
 			this.window.display();
 		}
 	}
@@ -60,15 +68,18 @@ class Game
 		this.background = new Texture();
 		this.background.loadFromFile("sprites/background.png");
 		this.rBackground = new RectangleShape();
-		this.rBackground.size = to!Vector2f(this.size);
+		this.size = this.background.getSize() * this.scale;
+		this.rBackground.size = Vector2f(this.size);
 		this.rBackground.fillColor = Color(255, 255, 255);
 		this.rBackground.setTexture(this.background);
 		this.ground = new Texture();
 		this.ground.loadFromFile("sprites/ground.png");
 		this.rGround = new RectangleShape();
-		this.rGround.size = Vector2f(169 * 3, 59 * 3);
+		this.rGround.size = to!Vector2f(this.ground.getSize() * this.scale);
 		this.rGround.fillColor = Color(255, 255, 255);
 		this.rGround.setTexture(this.ground);
-		this.rGround.position(Vector2f(-4, (this.size.y / 4) * 3 + 24));
+		this.rGround.position(Vector2f(-4, ((this.size.y / this.scale) * (this.scale - 1)) + 40));
+		this.tbird = new Texture();
+		this.tbird.loadFromFile("sprites/bird_middle.png");
 	}
 }
