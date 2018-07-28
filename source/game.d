@@ -1,39 +1,40 @@
-import dsfml.graphics;
-import dsfml.window;
-import dsfml.system;
+import globals;
 
 import std.conv : to;
-import std.random : Random, unpredictableSeed, uniform;
+import std.random : uniform;
 import std.stdio : writeln;
+import std.algorithm;
+
 import bird;
+import pipe;
 
 class Game
 {
-	Random			rng;
-
 	RenderWindow	window;
-	Vector2i		size;
 	ContextSettings	settings;
 	Color			color;
 
 	Texture			background;
 	Texture			ground;
-	Texture			tbird;
+	Texture 		bottomPipe;
+	Texture 		topPipe;
+
 	RectangleShape 	rBackground;
 	RectangleShape	rGround;
 
-	int 			scale = 4;
+	double 			scale = 4.5;
+	long			frames = 0;
 
 	Bird 			bird;
+	Pipe[] pipes;
 
-	this(Random rng)
+	this()
 	{
 		this.loadTextures();
-		this.color = Color(0, 0, 0);
-		this.window = new RenderWindow(VideoMode(this.size.x, this.size.y), "Flappy Bird");
+		this.color = Color.Black;
+		this.window = new RenderWindow(VideoMode(size.x, size.y), "Flappy Bird");
 		this.window.setFramerateLimit(60);
-		this.rng = rng;
-		this.bird = new Bird(this.size, this.tbird, this.scale);
+		this.bird = new Bird(size, this.scale);
 	}
 
 	void run()
@@ -41,12 +42,30 @@ class Game
 		while (this.window.isOpen())
 		{
 			this.getEvents();
+			this.update();
 			this.window.clear(this.color);
 			this.window.draw(this.rBackground);
 			this.window.draw(this.rGround);
+			foreach (pipe; pipes)
+				pipe.draw(this.window);
 			this.bird.draw(this.window);
 			this.window.display();
 		}
+	}
+
+	void update()
+	{
+		this.bird.update();
+		this.bird.checkForHit(this.pipes, this.rGround.position());
+		if (this.frames % 150 == 0)
+			this.pipes ~= new Pipe(this.topPipe, this.bottomPipe);
+		foreach (pipe; pipes)
+		{
+			pipe.update();
+			if (pipe.bottomPipe.position().x < -pipe.bottomPipe.size().x)
+				this.pipes = remove!(a => a == pipe)(this.pipes);
+		}
+		this.frames++;
 	}
 
 	void getEvents()
@@ -59,7 +78,8 @@ class Game
 			if (event.type == Event.EventType.MouseButtonPressed)
 			{}
 			if (event.type == Event.EventType.KeyPressed)
-			{}
+				if (event.key.code == Keyboard.Key.Space)
+					this.bird.jump();
 		}
 	}
 
@@ -67,19 +87,26 @@ class Game
 	{
 		this.background = new Texture();
 		this.background.loadFromFile("sprites/background.png");
+
 		this.rBackground = new RectangleShape();
-		this.size = this.background.getSize() * this.scale;
-		this.rBackground.size = Vector2f(this.size);
-		this.rBackground.fillColor = Color(255, 255, 255);
+		size = Vector2i(600, 800);
+		this.rBackground.size = Vector2f(size);
+		this.rBackground.fillColor = Color.White;
 		this.rBackground.setTexture(this.background);
+
 		this.ground = new Texture();
 		this.ground.loadFromFile("sprites/ground.png");
+
 		this.rGround = new RectangleShape();
-		this.rGround.size = to!Vector2f(this.ground.getSize() * this.scale);
-		this.rGround.fillColor = Color(255, 255, 255);
+		this.rGround.size = Vector2f(size.x, size.y / this.scale);
+		this.rGround.fillColor = Color.White;
 		this.rGround.setTexture(this.ground);
-		this.rGround.position(Vector2f(-4, ((this.size.y / this.scale) * (this.scale - 1)) + 40));
-		this.tbird = new Texture();
-		this.tbird.loadFromFile("sprites/bird_middle.png");
+		this.rGround.position(Vector2f(0, size.y - (size.y / this.scale)));
+
+		this.bottomPipe = new Texture();
+		this.bottomPipe.loadFromFile("sprites/tube_up.png");
+
+		this.topPipe = new Texture();
+		this.topPipe.loadFromFile("sprites/tube_down.png");
 	}
 }
