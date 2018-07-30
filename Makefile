@@ -1,4 +1,4 @@
-DC=dmd
+DC=ldc2
 OUT=bin/mines
 
 $(OUT): DSFMLC

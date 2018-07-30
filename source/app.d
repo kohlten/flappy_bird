@@ -9,6 +9,8 @@ import std.conv : to;
 
 void main()
 {
+	//setMouseCursorVisible;
+	//setVerticalSyncEnabled
 	auto game = new Game();
 	game.run();
 }

@@ -7,6 +7,8 @@ import std.conv : to;
 import std.stdio : writeln;
 
 import pipe;
+import utils.other;
+import utils.vector;
 
 class Bird
 {
@@ -61,6 +63,11 @@ class Bird
 					this.vel.y = -this.max.y;
 			}
 			this.bird.position(this.bird.position() + this.vel);
+			if (this.vel.y < 0)
+				this.bird.rotation(-20);
+			else if (this.vel.y > 0)
+				this.bird.rotation(map(this.vel.y, 0, 10,this.bird.rotation(), 60));
+			writeln(this.bird.rotation());
 		}
 	}
 
@@ -81,6 +88,13 @@ class Bird
 
 		if (nextPos.y + this.bird.size().y - 5 >= groundPos.y)
 			this.allowUpdate = false;
+		foreach (pipe; pipes)
+		{
+		 	if (collidesRect(pipe.bottomPipe, this.bird))
+		 		this.allowUpdate = false;
+		 	if (collidesRect(pipe.topPipe, this.bird))
+		 		this.allowUpdate = false;
+		}
 		return this.allowUpdate;
 	}
 

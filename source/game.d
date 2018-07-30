@@ -7,6 +7,7 @@ import std.algorithm;
 
 import bird;
 import pipe;
+import load;
 
 class Game
 {
@@ -28,12 +29,18 @@ class Game
 	Bird 			bird;
 	Pipe[] pipes;
 
+	bool move = true;
+	bool wait = true;
+	bool pause = false;
+
 	this()
 	{
 		this.loadTextures();
 		this.color = Color.Black;
-		this.window = new RenderWindow(VideoMode(size.x, size.y), "Flappy Bird");
+		this.window = new RenderWindow(VideoMode(size.x, size.y), "Flappy Bird", RenderWindow.Style.Titlebar | RenderWindow.Style.Close);
 		this.window.setFramerateLimit(60);
+		this.window.setVerticalSyncEnabled(true);
+		this.window.setMouseCursorVisible(false);
 		this.bird = new Bird(size, this.scale);
 	}
 
@@ -55,17 +62,20 @@ class Game
 
 	void update()
 	{
-		this.bird.update();
-		this.bird.checkForHit(this.pipes, this.rGround.position());
-		if (this.frames % 150 == 0)
-			this.pipes ~= new Pipe(this.topPipe, this.bottomPipe);
-		foreach (pipe; pipes)
+		if (this.move && !this.wait && !this.pause)
 		{
-			pipe.update();
-			if (pipe.bottomPipe.position().x < -pipe.bottomPipe.size().x)
-				this.pipes = remove!(a => a == pipe)(this.pipes);
+			this.bird.update();
+			this.move = this.bird.checkForHit(this.pipes, this.rGround.position());
+			if (this.frames % 150 == 0)
+				this.pipes ~= new Pipe(this.topPipe, this.bottomPipe);
+			foreach (pipe; pipes)
+			{
+				pipe.update();
+				if (pipe.bottomPipe.position().x < -pipe.bottomPipe.size().x)
+					this.pipes = remove!(a => a == pipe)(this.pipes);
+			}
+			this.frames++;
 		}
-		this.frames++;
 	}
 
 	void getEvents()
@@ -76,37 +86,40 @@ class Game
 			if (event.type == Event.EventType.Closed)
 				window.close();
 			if (event.type == Event.EventType.MouseButtonPressed)
-			{}
+			{
+				if (this.wait)
+						this.wait = false;
+				this.bird.jump();
+			}
 			if (event.type == Event.EventType.KeyPressed)
 				if (event.key.code == Keyboard.Key.Space)
+				{
+					if (this.wait)
+						this.wait = false;
 					this.bird.jump();
+				}
+			if (event.type == Event.EventType.LostFocus)
+    			this.pause = true;
+
+			if (event.type == Event.EventType.GainedFocus)
+    			this.pause = false;
 		}
 	}
 
 	void loadTextures()
 	{
-		this.background = new Texture();
-		this.background.loadFromFile("sprites/background.png");
+		this.background = loadTexture("sprites/background.png");
+		this.ground = loadTexture("sprites/ground.png");
+		this.bottomPipe = loadTexture("sprites/tube_up.png");
+		this.topPipe = loadTexture("sprites/tube_down.png");
 
-		this.rBackground = new RectangleShape();
-		size = Vector2i(600, 800);
-		this.rBackground.size = Vector2f(size);
-		this.rBackground.fillColor = Color.White;
-		this.rBackground.setTexture(this.background);
+		if (!this.background || !this.ground || !this.bottomPipe || !this.topPipe)
+			writeln("Failed to load a sprite");
 
-		this.ground = new Texture();
-		this.ground.loadFromFile("sprites/ground.png");
+		this.rBackground = newRectangle(Vector2f(size), Vector2f(0, 0), this.background);
 
-		this.rGround = new RectangleShape();
-		this.rGround.size = Vector2f(size.x, size.y / this.scale);
-		this.rGround.fillColor = Color.White;
-		this.rGround.setTexture(this.ground);
-		this.rGround.position(Vector2f(0, size.y - (size.y / this.scale)));
-
-		this.bottomPipe = new Texture();
-		this.bottomPipe.loadFromFile("sprites/tube_up.png");
-
-		this.topPipe = new Texture();
-		this.topPipe.loadFromFile("sprites/tube_down.png");
+		this.rGround = newRectangle(Vector2f(size.x, size.y / this.scale),
+									Vector2f(0, size.y - (size.y / this.scale)),
+									this.ground);
 	}
 }
